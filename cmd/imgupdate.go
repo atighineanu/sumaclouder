@@ -26,7 +26,7 @@ import (
 var (
 	imgupdateCmd = &cobra.Command{
 		Use:   "imgupdate",
-		Short: "A brief description of your command",
+		Short: "Updates images to the latest versions (checks upload time on download.suse.de)",
 		Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -38,6 +38,7 @@ to quickly create a Cobra application.`,
 		},
 	}
 	downloadSuseLink = "http://download.suse.de/ibs/Devel:/PubCloud:/Stable:/CrossCloud:/SLE15-SP3/images/" //hardcoded - to be improved
+	downloadSuseHost = "download.suse.de"                                                                   //also hardcoded... bad!
 )
 
 func init() {
@@ -57,13 +58,14 @@ func init() {
 func imgupdateRun() {
 	//line := `<tr><td valign="top"><a href="SUSE-Manager-Server-BYOS.x86_64-0.9.0-GCE-Build1.23.tar.gz.sha256.asc"><img src="/icons/encrypted.png" alt="[   ]" width="16" height="16" /></a></td><td><a href="SUSE-Manager-Server-BYOS.x86_64-0.9.0-GCE-Build1.23.tar.gz.sha256.asc">SUSE-Manager-Server-BYOS.x86_64-0.9.0-GCE-Build1.23.tar.gz.sha256.asc</a></td><td align="right">07-May-2021 20:12  </td><td align="right">189  </td><td><a href="SUSE-Manager-Server-BYOS.x86_64-0.9.0-GCE-Build1.23.tar.gz.sha256.asc.mirrorlist">`
 	//utils.ParseWebHTMLLine(line)
-
+	log.Println("Checking if GCP bucket/images are there...")
 	imglist, err := utils.ListObjectsInBucket(conf.GCEAuthPath, projectID, bucketName, "")
 	if err != nil {
-		log.Fatalf("Error %v", err)
+		log.Fatalf("Error: %v", err)
 	}
+	log.Println("Checking if images up to date...")
 	err = utils.CheckifImgUpdated(imglist, downloadSuseLink)
 	if err != nil {
-		log.Fatalf("Error %v", err)
+		log.Fatalf("Error: %v", err)
 	}
 }

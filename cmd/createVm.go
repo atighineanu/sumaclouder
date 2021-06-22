@@ -24,7 +24,7 @@ import (
 // createVmCmd represents the createVm command
 var createVmCmd = &cobra.Command{
 	Use:   "createvm",
-	Short: "A brief description of your command",
+	Short: "creates a \"fake-bare-metal\" VM using xmls and images from rock229.qa.prv.suse.net",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 

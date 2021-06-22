@@ -16,29 +16,30 @@ limitations under the License.
 package cmd
 
 import (
-	"log"
 	"fmt"
+	"log"
 	"sumaclouder/utils"
+
 	"github.com/spf13/cobra"
 )
 
 // imguploadCmd represents the imgUpload command
 var (
-	filePath string
-	fileName string
+	filePath     string
+	fileName     string
 	imguploadCmd = &cobra.Command{
-	Use:   "imgupload",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
+		Use:   "imgupload",
+		Short: "uploads a public cloud image",
+		Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		run2()
-	},
-}
+		Run: func(cmd *cobra.Command, args []string) {
+			run2()
+		},
+	}
 )
 
 func init() {
@@ -56,14 +57,15 @@ func init() {
 	// is called directly, e.g.:
 	// imgUploadCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
+
 //jsonPath, bucketName, filePath, uploadedFilename
 func run2() {
 	err := utils.UploadFile(conf.GCEAuthPath, bucketName, filePath, fileName)
-	if (err != nil) {
+	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}
 	found, err := utils.CheckIfItemExists(conf.GCEAuthPath, projectID, bucketName, fileName)
-	if (err != nil) {
+	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}
 	if found {

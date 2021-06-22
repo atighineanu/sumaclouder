@@ -17,24 +17,25 @@ package cmd
 
 import (
 	"sumaclouder/utils"
+
 	"github.com/spf13/cobra"
 )
 
 // listimagesCmd represents the listimages command
 var (
 	listimagesCmd = &cobra.Command{
-	Use:   "listimages",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
+		Use:   "listimages",
+		Short: "lists the images in the default bucket; you can indicate the bucket with a flag",
+		Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		run()
-	},
-}
+		Run: func(cmd *cobra.Command, args []string) {
+			run()
+		},
+	}
 	bucketName string
 	//jsonPath = "/home/user/scripts/github.com/atighineanu/sumaclouder/suse-css-qa-1118d21643fd.json"
 	projectID = "suse-css-qa"
@@ -54,6 +55,6 @@ func init() {
 	// listimagesCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func run() {	
+func run() {
 	utils.ListObjectsInBucket(conf.GCEAuthPath, projectID, bucketName, "")
 }
