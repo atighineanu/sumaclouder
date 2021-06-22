@@ -36,14 +36,13 @@ to quickly create a Cobra application.`,
 			run()
 		},
 	}
-	bucketName string
+
 	//jsonPath = "/home/user/scripts/github.com/atighineanu/sumaclouder/suse-css-qa-1118d21643fd.json"
-	projectID = "suse-css-qa"
+
 )
 
 func init() {
 	rootCmd.AddCommand(listimagesCmd)
-	rootCmd.PersistentFlags().StringVar(&bucketName, "bucketname", "suse-manager-images", "the name of the bucket of interest")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
