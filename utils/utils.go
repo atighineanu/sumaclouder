@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/url"
 	"os"
 	"os/exec"
 	"regexp"
@@ -103,6 +104,10 @@ func UploadFile(jsonPath, bucketName, filePath, uploadedFilename string) error {
 }
 
 func CheckifImgUpdated(imglist map[string]time.Time, downloadSuseLink string) error {
+	err := CheckNetworkFine(downloadSuseLink)
+	if err != nil {
+		return err
+	}
 	cmd := []string{"curl", downloadSuseLink}
 	output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	if err != nil {
@@ -158,4 +163,40 @@ func ParseWebHTMLLine(htmlLine string) (time.Time, error) {
 		return day, err
 	}
 	return day, nil
+}
+
+func CheckNetworkFine(downloadSuseLink string) error {
+	url, err := url.Parse(downloadSuseLink)
+	if err != nil {
+		return err
+	}
+	//fmt.Println(url.Host)
+	out, err := exec.Command("which", "ping").CombinedOutput()
+	if err != nil {
+		return err
+	}
+	if strings.Contains(fmt.Sprintf("%s", string(out)), "bin/ping") {
+		out, err := exec.Command("ping", "-c", "1", "-W", "1", url.Host).CombinedOutput()
+		if err != nil {
+			if strings.Contains(fmt.Sprintf("%s", string(out)), "100% packet loss") {
+				err = errors.New("Error: " + fmt.Sprintf("%s", string(out)))
+			}
+			return err
+		}
+	} else {
+		out, err := exec.Command("which", "fping").CombinedOutput()
+		if err != nil {
+			return err
+		}
+		if strings.Contains(fmt.Sprintf("%s", string(out)), "bin/fping") {
+			out, err := exec.Command("fping", "-c1", "-t500", url.Host).CombinedOutput()
+			if err != nil {
+				if strings.Contains(fmt.Sprintf("%s", string(out)), "100% packet loss") {
+					err = errors.New("Error: " + fmt.Sprintf("%s", string(out)))
+				}
+				return err
+			}
+		}
+	}
+	return err
 }
