@@ -83,7 +83,7 @@ func UploadFile(jsonPath, bucketName, filePath, uploadedFilename string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	defer client.Close()
 	file, err := os.Open(filePath)
 	if err != nil {
 		return errors.New("problem opening file for gcs")
@@ -103,7 +103,7 @@ func UploadFile(jsonPath, bucketName, filePath, uploadedFilename string) error {
 	return nil
 }
 
-func CheckifImgUpdated(imglist map[string]time.Time, downloadSuseLink string) ([]string, error) {
+func CheckifImgUpdated(imglist map[string]time.Time, downloadSuseLink string) (map[string]ImgRegister, error) {
 	err := CheckNetworkFine(downloadSuseLink)
 	if err != nil {
 		return nil, err
@@ -114,47 +114,61 @@ func CheckifImgUpdated(imglist map[string]time.Time, downloadSuseLink string) ([
 		return nil, err
 	}
 	stroutput := string(fmt.Sprintf("%s", output))
-	var imgToUpdate []string
+	imgAndTimestamp := make(map[string]ImgRegister)
 	if len(imglist) > 0 {
 		for index, value := range imglist {
-			//fmt.Println(value)
+			//fmt.Printf("INDEX: %s, VALUE: %s\n", index, value)
 			if strings.Contains(stroutput, index) {
 				log.Printf("%s is the latest Google Cloud Image.\n", index)
 			} else {
-				day, _ := ImgVersioningParser(stroutput, index, "x86_64")
-				if day.Sub(value).Hours() > 3 {
-					imgToUpdate = append(imgToUpdate, index)
+				singleImgAndTimestamp, _ := ImgVersioningParser(stroutput, index, "x86_64")
+				if singleImgAndTimestamp[index].Timestamp.Sub(value).Hours() > 3 {
+					log.Printf("Image: %s has to be replaced with newer image: %s\n", index, singleImgAndTimestamp[index].NewImgVers)
+					imgAndTimestamp[index] = singleImgAndTimestamp[index]
 				}
 			}
 		}
 	}
-	return imgToUpdate, nil
+	fmt.Println(imgAndTimestamp)
+	return imgAndTimestamp, nil
 }
 
-func ImgVersioningParser(webpage string, image string, arch string) (time.Time, error) {
+func ImgVersioningParser(webpage string, image string, arch string) (map[string]ImgRegister, error) {
 	tmpwebpageslice := strings.Split(webpage, "Details")
 	imgprefix := strings.Split(image, fmt.Sprintf(".%s-", arch))[0]
-	imgregister := make(map[string][]string)
 	regserver := regexp.MustCompile(".tar.gz\"")
+	imgAndTimestamp := make(map[string]ImgRegister)
 	var day time.Time
 	var err error
 	for _, value := range tmpwebpageslice {
 		if regserver.FindString(value) != "" && strings.Contains(value, arch) && strings.Contains(value, "GCE") {
 			if strings.Contains(value, imgprefix) {
-				day, err = ParseWebHTMLLine(value)
-				if err != nil {
-					return day, err
+				imageName := regexp.MustCompile(`\w{4}-\w{7}-\w{5,7}.{1,100}tar.gz$`)
+				for _, val := range strings.Split(value, "\"") {
+					if imageName.FindString(val) != "" {
+						//fmt.Println(val)
+						if imgAndTimestamp[image].Timestamp.IsZero() {
+							day, err = ParseWebHTMLLine(value)
+							if err != nil {
+								return nil, err
+							}
+							var tmpRegister ImgRegister
+							tmpRegister.Timestamp = day
+							tmpRegister.NewImgVers = val
+							imgAndTimestamp[image] = tmpRegister
+						}
+
+					}
 				}
-				imgregister[imgprefix] = append(imgregister[imgprefix], strings.Split(value, fmt.Sprintf(".%s-", arch))[1])
 			}
 		}
 	}
 	//fmt.Println(imgregister)
-	return day, nil
+	return imgAndTimestamp, nil
 }
 
 func ParseWebHTMLLine(htmlLine string) (time.Time, error) {
-	fmt.Println(htmlLine)
+	//fmt.Println(htmlLine)
 	reg := regexp.MustCompile(`\d{2}-\w{3,9}-\d{4} \d{2}:\d{2}`)
 	timestamp := fmt.Sprintf("%s CET", reg.FindStringSubmatch(htmlLine)[0])
 	if strings.Contains(timestamp, "-202") {
@@ -164,12 +178,29 @@ func ParseWebHTMLLine(htmlLine string) (time.Time, error) {
 	if err != nil {
 		return day, err
 	}
-	reg = regexp.MustCompile(`\d{4}-\d{7}`)
 	return day, nil
 }
 
 func ReplaceImagesOnGCE(imgToUpdate []string, jsonPath, bucketName, downloadSuseLink string) error {
 
+	return nil
+}
+
+func DeleteItemInBucket(item, jsonPath, bucketName string) error {
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx, option.WithCredentialsFile(jsonPath))
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	CheckIfBucketExists(ctx, client, bucketName)
+	//fmt.Printf("%T    %T\n", ctx, client)
+	bucket := client.Bucket(bucketName)
+	o := bucket.Object(item)
+	if err := o.Delete(ctx); err != nil {
+		return fmt.Errorf("Object(%q).Delete: %v", item, err)
+	}
+	log.Printf("Item: %s deleted in bucket: %s\n", item, bucketName)
 	return nil
 }
 
