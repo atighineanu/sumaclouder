@@ -103,17 +103,18 @@ func UploadFile(jsonPath, bucketName, filePath, uploadedFilename string) error {
 	return nil
 }
 
-func CheckifImgUpdated(imglist map[string]time.Time, downloadSuseLink string) error {
+func CheckifImgUpdated(imglist map[string]time.Time, downloadSuseLink string) ([]string, error) {
 	err := CheckNetworkFine(downloadSuseLink)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cmd := []string{"curl", downloadSuseLink}
 	output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	stroutput := string(fmt.Sprintf("%s", output))
+	var imgToUpdate []string
 	if len(imglist) > 0 {
 		for index, value := range imglist {
 			//fmt.Println(value)
@@ -122,19 +123,19 @@ func CheckifImgUpdated(imglist map[string]time.Time, downloadSuseLink string) er
 			} else {
 				day, _ := ImgVersioningParser(stroutput, index, "x86_64")
 				if day.Sub(value).Hours() > 3 {
-					log.Printf("There's a newer image for %s. Updating the bucket...\n", index)
+					imgToUpdate = append(imgToUpdate, index)
 				}
 			}
 		}
 	}
-	return nil
+	return imgToUpdate, nil
 }
 
 func ImgVersioningParser(webpage string, image string, arch string) (time.Time, error) {
 	tmpwebpageslice := strings.Split(webpage, "Details")
 	imgprefix := strings.Split(image, fmt.Sprintf(".%s-", arch))[0]
 	imgregister := make(map[string][]string)
-	regserver := regexp.MustCompile(".tar.gz")
+	regserver := regexp.MustCompile(".tar.gz\"")
 	var day time.Time
 	var err error
 	for _, value := range tmpwebpageslice {
@@ -153,6 +154,7 @@ func ImgVersioningParser(webpage string, image string, arch string) (time.Time, 
 }
 
 func ParseWebHTMLLine(htmlLine string) (time.Time, error) {
+	fmt.Println(htmlLine)
 	reg := regexp.MustCompile(`\d{2}-\w{3,9}-\d{4} \d{2}:\d{2}`)
 	timestamp := fmt.Sprintf("%s CET", reg.FindStringSubmatch(htmlLine)[0])
 	if strings.Contains(timestamp, "-202") {
@@ -162,7 +164,13 @@ func ParseWebHTMLLine(htmlLine string) (time.Time, error) {
 	if err != nil {
 		return day, err
 	}
+	reg = regexp.MustCompile(`\d{4}-\d{7}`)
 	return day, nil
+}
+
+func ReplaceImagesOnGCE(imgToUpdate []string, jsonPath, bucketName, downloadSuseLink string) error {
+
+	return nil
 }
 
 func CheckNetworkFine(downloadSuseLink string) error {
@@ -192,7 +200,7 @@ func CheckNetworkFine(downloadSuseLink string) error {
 			out, err := exec.Command("fping", "-c1", "-t500", url.Host).CombinedOutput()
 			if err != nil {
 				if strings.Contains(fmt.Sprintf("%s", string(out)), "100% packet loss") {
-					err = errors.New("Error: " + fmt.Sprintf("%s", string(out)))
+					err = errors.New("Network Error: " + fmt.Sprintf("%s", string(out)))
 				}
 				return err
 			}
