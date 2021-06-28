@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -129,7 +130,7 @@ func CheckifImgUpdated(imglist map[string]time.Time, downloadSuseLink string) (m
 			}
 		}
 	}
-	fmt.Println(imgAndTimestamp)
+	//fmt.Println(imgAndTimestamp)
 	return imgAndTimestamp, nil
 }
 
@@ -181,8 +182,21 @@ func ParseWebHTMLLine(htmlLine string) (time.Time, error) {
 	return day, nil
 }
 
-func ReplaceImagesOnGCE(imgToUpdate []string, jsonPath, bucketName, downloadSuseLink string) error {
-
+func (conf *Config) ReplaceImagesOnGCE(imgAndTimestamp map[string]ImgRegister, jsonPath, bucketName, downloadSuseLink string) error {
+	for index, value := range imgAndTimestamp {
+		err := DownloadFileFromIntra(value.NewImgVers, downloadSuseLink)
+		if err != nil {
+			return err
+		}
+		err = DeleteItemInBucket(index, conf.GCEAuthPath, bucketName)
+		if err != nil {
+			return err
+		}
+		err = UploadFile(conf.GCEAuthPath, bucketName, filepath.Join(filepath.Dir(conf.GCEAuthPath), value.NewImgVers), value.NewImgVers)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -238,4 +252,17 @@ func CheckNetworkFine(downloadSuseLink string) error {
 		}
 	}
 	return err
+}
+
+func DownloadFileFromIntra(filename, downloadSuseLink string) error {
+	path := filepath.Join(downloadSuseLink, filename)
+	if strings.Contains(path, "http:/d") {
+		path = strings.Replace(path, "http:/d", "http://d", 1)
+	}
+	cmdToRun := []string{"wget", "-v", path}
+	_, err := exec.Command(cmdToRun[0], cmdToRun[1:]...).CombinedOutput()
+	if err != nil {
+		return err
+	}
+	return nil
 }
