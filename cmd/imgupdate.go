@@ -37,8 +37,7 @@ to quickly create a Cobra application.`,
 			imgupdateRun()
 		},
 	}
-	downloadSuseLink = "http://download.suse.de/ibs/Devel:/PubCloud:/Stable:/CrossCloud:/SLE15-SP3/images/" //hardcoded - to be improved
-	downloadSuseHost = "download.suse.de"                                                                   //also hardcoded... bad!
+	downloadSuseLink = "http://download.suse.de/ibs/Devel:/PubCloud:/Stable:/CrossCloud:/SLE15-SP3/images/" //hardcoded - to be improved                                                               //also hardcoded... bad!
 )
 
 func init() {
@@ -64,7 +63,11 @@ func imgupdateRun() {
 		log.Fatalf("Error: %v", err)
 	}
 	log.Println("Checking if images up to date...")
-	err = utils.CheckifImgUpdated(imglist, downloadSuseLink)
+	imgAndTimeStamp, err := utils.CheckifImgUpdated(imglist, downloadSuseLink)
+	if err != nil {
+		log.Fatalf("Possible network error: %v", err)
+	}
+	err = conf.ReplaceImagesOnGCE(imgAndTimeStamp, conf.GCEAuthPath, bucketName, downloadSuseLink)
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
