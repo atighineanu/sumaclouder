@@ -16,4 +16,5 @@ type ImgRegister struct {
 
 type Config struct {
 	GCEAuthPath string
+	WorkdirPath string
 }
