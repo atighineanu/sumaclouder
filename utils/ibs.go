@@ -15,11 +15,11 @@ const (
 
 func SyncMUChannel(mu string) error {
 	mu = "SUSE:Maintenance:20223:244004"
-	incidentAndReleaseAndPrefixes := strings.Split(mu, ":")
-	if len(incidentAndReleaseAndPrefixes) < 4 {
+	if regexp.MustCompile(`SUSE:Maintenance:\d{4,7}`).FindString(mu) == "" {
 		return fmt.Errorf("The MU is formatted wrong... check the MU SUSE:Maintenance:<incident_number>:<rr_number>")
 	}
-	compoundIbsLink := fmt.Sprintf("%s%s/", downloadIbsLink, incidentAndReleaseAndPrefixes[2])
+	releaseRequest := strings.Replace(regexp.MustCompile(`SUSE:Maintenance:\d{4,7}`).FindString(mu), "SUSE:Maintenance:", "", 1)
+	compoundIbsLink := fmt.Sprintf("%s%s/", downloadIbsLink, releaseRequest)
 	fmt.Println(compoundIbsLink)
 
 	resp, err := http.Get(compoundIbsLink)
