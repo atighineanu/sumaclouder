@@ -188,7 +188,7 @@ func (conf *Config) ReplaceImagesOnGCE(imgAndTimestamp map[string]ImgRegister, j
 		if err != nil {
 			return err
 		}
-		err = DeleteItemInBucket(index, conf.GCEAuthPath, bucketName)
+		err = DeleteItemInBucket(conf.GCEAuthPath, bucketName, index)
 		if err != nil {
 			return err
 		}
@@ -200,7 +200,7 @@ func (conf *Config) ReplaceImagesOnGCE(imgAndTimestamp map[string]ImgRegister, j
 	return nil
 }
 
-func DeleteItemInBucket(item, jsonPath, bucketName string) error {
+func DeleteItemInBucket(jsonPath, bucketName, item string) error {
 	ctx := context.Background()
 	client, err := storage.NewClient(ctx, option.WithCredentialsFile(jsonPath))
 	if err != nil {
