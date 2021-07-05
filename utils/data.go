@@ -18,3 +18,10 @@ type Config struct {
 	GCEAuthPath string
 	WorkdirPath string
 }
+
+type MU struct {
+	Prefix1        string
+	Prefix2        string
+	Incident       string
+	ReleaseRequest string
+}
