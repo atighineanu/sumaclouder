@@ -19,7 +19,9 @@ import (
 	"google.golang.org/api/option"
 )
 
-func CheckIfBucketExists(ctx context.Context, client *storage.Client, bucketName string) {
+func CheckIfBucketExists(ctx context.Context, client *storage.Client, bucketName string) (bool, error) {
+	storage.ErrObjectNotExist.Error()
+	storage.ErrBucketNotExist.Error()
 	bucket := client.Bucket(bucketName)
 	_, err := bucket.Attrs(ctx)
 	if err != nil {
@@ -27,6 +29,7 @@ func CheckIfBucketExists(ctx context.Context, client *storage.Client, bucketName
 	} else {
 		log.Println("Bucket exists. OK.")
 	}
+	return false, nil
 }
 
 func CheckIfItemExists(jsonPath, projectID, bucketName, fileName string) (bool, error) {
@@ -87,20 +90,16 @@ func UploadFile(jsonPath, bucketName, filePath, uploadedFilename string) error {
 	defer client.Close()
 	file, err := os.Open(filePath)
 	if err != nil {
-		return errors.New("problem opening file for gcs")
+		return errors.New(fmt.Sprintf("Problem opening file for gcs.\nCheck if filePath is correct: %s\n", filePath))
 	}
 	defer file.Close()
-
 	sw := client.Bucket(bucketName).Object(uploadedFilename).NewWriter(ctx)
-
 	if _, err := io.Copy(sw, file); err != nil {
 		return err
 	}
-
 	if err := sw.Close(); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -145,6 +144,7 @@ func ImgVersioningParser(webpage string, image string, arch string) (map[string]
 		if regserver.FindString(value) != "" && strings.Contains(value, arch) && strings.Contains(value, "GCE") {
 			if strings.Contains(value, imgprefix) {
 				imageName := regexp.MustCompile(`\w{4}-\w{7}-\w{5,7}.{1,100}tar.gz$`)
+				fmt.Println(imageName.FindString(webpage))
 				for _, val := range strings.Split(value, "\"") {
 					if imageName.FindString(val) != "" {
 						//fmt.Println(val)
@@ -223,7 +223,6 @@ func CheckNetworkFine(downloadSuseLink string) error {
 	if err != nil {
 		return err
 	}
-	//fmt.Println(url.Host)
 	out, err := exec.Command("which", "ping").CombinedOutput()
 	if err != nil {
 		return err
@@ -255,10 +254,7 @@ func CheckNetworkFine(downloadSuseLink string) error {
 }
 
 func DownloadFileFromIntra(filename, downloadSuseLink string) error {
-	path := filepath.Join(downloadSuseLink, filename)
-	if strings.Contains(path, "http:/d") {
-		path = strings.Replace(path, "http:/d", "http://d", 1)
-	}
+	path := downloadSuseLink + "/" + filename
 	cmdToRun := []string{"wget", "-v", path}
 	_, err := exec.Command(cmdToRun[0], cmdToRun[1:]...).CombinedOutput()
 	if err != nil {

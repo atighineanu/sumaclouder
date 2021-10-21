@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"sumaclouder/utils"
 
 	"github.com/spf13/cobra"
@@ -53,5 +54,8 @@ func init() {
 }
 
 func syncChan() {
-	utils.SyncMUChannel("")
+	err := utils.SyncMUChannel("")
+	if err != nil {
+		log.Printf("%v\n", err)
+	}
 }

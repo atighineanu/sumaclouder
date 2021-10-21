@@ -15,6 +15,8 @@ if not built:
   `go run main.go listimages --bucketname <some-bucket>` - will list all the files in a given bucket (default bucket is the same
   like the one specified above)
 
+  `go run main.go imgupload --bucketname <some-bucket> --filepath <path-to-file-on-your-hard-disk> --filename <name-of-file-on-cloud-bucket>` - will upload a single file from a "--filepath" source into a "--bucketname" with a given name "--filename". 
+
 if you built the binary:
 `./sumaclouder <feature>`
 

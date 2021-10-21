@@ -13,15 +13,19 @@ const (
 	downloadIbsLink = "http://download.suse.de/ibs/SUSE:/Maintenance:/"
 )
 
+//func GetPageBody(url string)
+
 func SyncMUChannel(mu string) error {
 	mu = "SUSE:Maintenance:20223:244004"
-	if regexp.MustCompile(`SUSE:Maintenance:\d{4,7}`).FindString(mu) == "" {
-		return fmt.Errorf("The MU is formatted wrong... check the MU SUSE:Maintenance:<incident_number>:<rr_number>")
-	}
-	releaseRequest := strings.Replace(regexp.MustCompile(`SUSE:Maintenance:\d{4,7}`).FindString(mu), "SUSE:Maintenance:", "", 1)
-	compoundIbsLink := fmt.Sprintf("%s%s/", downloadIbsLink, releaseRequest)
-	fmt.Println(compoundIbsLink)
 
+	maintUpd, err := ReturnMU(mu)
+	if err != nil {
+		return err
+	}
+
+	compoundIbsLink := fmt.Sprintf("%s%s/", downloadIbsLink, maintUpd.Incident)
+
+	//fmt.Println(compoundIbsLink)
 	resp, err := http.Get(compoundIbsLink)
 	if err != nil {
 		return err
@@ -32,7 +36,8 @@ func SyncMUChannel(mu string) error {
 		return err
 	}
 
-	regexpServer := regexp.MustCompile(`SUSE-Manager-Server_\d{1}.\d{1}_x86_64`)
+	// finding Server and Proxy x86_64 folders in the ibs:/SUSE:/Maintenance:/Incident folder
+	regexpServer := regexp.MustCompile(`"SUSE-Manager-Server_\d{1}.\d{1}_x86_64"`)
 	regexpProxy := regexp.MustCompile(`SUSE-Manager-Proxy_\d{1}.\d{1}_x86_64`)
 	serverSuffix, _ := ProcessWebpage(*regexpServer, fmt.Sprintf("%s", string(body)))
 	proxySuffix, _ := ProcessWebpage(*regexpProxy, fmt.Sprintf("%s", string(body)))
@@ -51,9 +56,21 @@ func SyncMUChannel(mu string) error {
 	return nil
 }
 
+func ReturnMU(mu string) (MU, error) {
+	var muStruct MU
+	sliceMU := strings.Split(mu, ":")
+	if len(sliceMU) < 4 {
+		return muStruct, fmt.Errorf("The MU is formatted wrong... check the MU SUSE:Maintenance:<incident_number>:<rr_number>")
+	}
+	muStruct.Prefix1 = sliceMU[0]
+	muStruct.Prefix2 = sliceMU[1]
+	muStruct.Incident = sliceMU[2]
+	muStruct.ReleaseRequest = sliceMU[3]
+	return muStruct, nil
+}
+
 func ProcessWebpage(reg regexp.Regexp, rawOutput string) (string, error) {
 	if reg.FindString(rawOutput) != "" {
-		//fmt.Println(reg.FindString(rawOutput))
 		return reg.FindString(rawOutput), nil
 	}
 	return "", nil
